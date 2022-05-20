@@ -1,0 +1,17 @@
+﻿---------------ALSBaseCharacter-------------------
+1. FireAction() -> Do not replicate to other clients(Weapon attached but animation stay by default (EALSOverlayState::Default)) ---->>> FIXED!
+2. When start roll and aiming, player can shoot 
+
+
+---------------ALSPlayerController----------------
+1. Same as FireAction() -> but Controller responsible only for InputActions ----->>> FIXED!
+
+
+-------------------AWeaponBase------------------
+1. When player disconect from the server, the weapon still float in air.
+
+
+
+
+
+if (AALSPlayerCameraManager* CastedMgr = Cast<AALSPlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)))
