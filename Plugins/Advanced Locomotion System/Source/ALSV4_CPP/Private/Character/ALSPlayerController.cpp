@@ -233,9 +233,13 @@ void AALSPlayerController::LookingDirectionAction(const FInputActionValue& Value
 // Added by me
 void AALSPlayerController::FireAction(const FInputActionValue& Value)
 {
-	if(PossessedCharacter && Value.Get<bool>())
+	if(PossessedCharacter && Value.Get<bool>() && PossessedCharacter->GetRotationMode() == EALSRotationMode::Aiming)
 	{
-		PossessedCharacter->FireAction(Value.Get<bool>());
+		PossessedCharacter->StartFireAction();
+	}
+	else
+	{
+		PossessedCharacter->StopFireAction();
 	}
 	
 }

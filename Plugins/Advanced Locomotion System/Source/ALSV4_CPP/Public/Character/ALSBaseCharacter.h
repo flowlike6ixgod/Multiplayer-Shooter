@@ -361,9 +361,15 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	void LookingDirectionAction();
-
+	
+	/* Pressed fire action */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
-	void FireAction(bool bValue);
+	void StartFireAction();
+
+	/* Released fire action */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
+	void StopFireAction();
+
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "ALS|Input")
 	void NextWeaponAction();
@@ -671,13 +677,7 @@ public:
 
 	/* Check if player can fire*/
 	bool CanFire() const;
-
-	/* Pressed fire action */
-	void OnStartFire();
-
-	/* Released fire action */
-	void OnStopFire();
-
+	
 	/* Update current weapon */
 	void SetCurrentWeapon(AWeaponBase* NewWeapon, AWeaponBase* LastWeapon = nullptr);
 

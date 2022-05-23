@@ -679,20 +679,6 @@ void AALSBaseCharacter::GetCameraParameters(float& TPFOVOut, float& FPFOVOut, bo
 	bRightShoulderOut = bRightShoulder;
 }
 
-void AALSBaseCharacter::FireAction_Implementation(bool bValue)
-{
-	if (bValue == true && RotationMode == EALSRotationMode::Aiming)
-	{
-		CurrentWeapon->SetWeaponState(EWeaponState::Fire);
-		StartWeaponFire();
-	}
-	else
-	{
-		CurrentWeapon->SetWeaponState(EWeaponState::None);
-		StopWeaponFire();
-	}
-}
-
 void AALSBaseCharacter::NextWeaponAction_Implementation()
 {
 	OnNextWeapon();
@@ -701,6 +687,16 @@ void AALSBaseCharacter::NextWeaponAction_Implementation()
 void AALSBaseCharacter::PrevWeaponAction_Implementation()
 {
 	OnPreviousWeapon();
+}
+
+void AALSBaseCharacter::StartFireAction_Implementation()
+{
+	StartWeaponFire();
+}
+
+void AALSBaseCharacter::StopFireAction_Implementation()
+{
+	StopWeaponFire();
 }
 
 void AALSBaseCharacter::RagdollUpdate(float DeltaTime)
@@ -1531,6 +1527,7 @@ void AALSBaseCharacter::StartWeaponFire()
 		if (CurrentWeapon)
 		{
 			CurrentWeapon->StartFire();
+			CurrentWeapon->SetWeaponState(EWeaponState::Fire);
 		}
 	}
 }
@@ -1543,6 +1540,7 @@ void AALSBaseCharacter::StopWeaponFire()
 		if (CurrentWeapon)
 		{
 			CurrentWeapon->StopFire();
+			CurrentWeapon->SetWeaponState(EWeaponState::None);
 		}
 	}
 }
@@ -1550,16 +1548,6 @@ void AALSBaseCharacter::StopWeaponFire()
 bool AALSBaseCharacter::CanFire() const
 {
 	return true;
-}
-
-void AALSBaseCharacter::OnStartFire()
-{
-	StartWeaponFire();
-}
-
-void AALSBaseCharacter::OnStopFire()
-{
-	StopWeaponFire();
 }
 
 void AALSBaseCharacter::SetCurrentWeapon(AWeaponBase* NewWeapon, AWeaponBase* LastWeapon)
