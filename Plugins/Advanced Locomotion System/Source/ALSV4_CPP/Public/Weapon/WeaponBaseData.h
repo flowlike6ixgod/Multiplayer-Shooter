@@ -11,24 +11,6 @@
 //1. Create hit effect
 //
 
-USTRUCT()
-struct FWeaponHitInfo
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, Category = "Weapon")
-	float Spread;
-
-	UPROPERTY()
-	FVector Source;
-	
-	UPROPERTY()
-	int32 RandomSeed;
-	
-	FWeaponHitInfo() : Spread(0), Source(0), RandomSeed(0)
-	{
-	}; 
-};
 
 /**
  * 
@@ -61,10 +43,11 @@ protected:
 
 	/* replicated hit notify */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_HitNotify)
-	FWeaponHitInfo HitNotify;
+	FWeaponSpread WeaponSpread;
 
 	/* Current firing spread */
 	float CurrentFiringSpread;
+
 
 public:
 	/* Server notified of hit */

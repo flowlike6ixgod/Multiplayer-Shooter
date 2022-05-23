@@ -34,16 +34,10 @@ void AWeaponBaseProjectileData::Fire()
 		const FVector AdjustedDirection = (Hit.ImpactPoint - Source).GetSafeNormal();
 		bool bWeaponHit = false;
 
-		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Green,
-		                                 FString::Printf(
-			                                 TEXT("Adjusted direction: %s"), *AdjustedDirection.ToString()));
-
 		const float DirectionDot = FVector::DotProduct(AdjustedDirection, ShootDirection);
 		if (DirectionDot < 0.0f)
 		{
 			bWeaponHit = true;
-			GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Green,
-			                                 FString::Printf(TEXT("DirectionDot: %f"), DirectionDot));
 		}
 		else if (DirectionDot < 0.5f)
 		{

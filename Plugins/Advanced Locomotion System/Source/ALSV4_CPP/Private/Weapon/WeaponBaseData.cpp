@@ -13,7 +13,7 @@ AWeaponBaseData::AWeaponBaseData()
 float AWeaponBaseData::GetCurrentSpread() const
 {
 	float FinalSpread = WeaponBaseData.WeaponSpread + CurrentFiringSpread;
-	
+
 	return FinalSpread;
 }
 
@@ -101,9 +101,9 @@ void AWeaponBaseData::ServerMissNotify_Implementation(FVector_NetQuantizeNormal 
                                                       float Spread)
 {
 	const FVector Source = GetMuzzleLocation();
-	HitNotify.Source = Source;
-	HitNotify.Spread = Spread;
-	HitNotify.RandomSeed = RandSeed;
+	WeaponSpread.Source = Source;
+	WeaponSpread.Spread = Spread;
+	WeaponSpread.RandomSeed = RandSeed;
 
 	if (GetNetMode() != NM_DedicatedServer)
 	{
@@ -152,9 +152,9 @@ void AWeaponBaseData::HitConfirmed(const FHitResult& HitResult, const FVector& S
 
 	if (GetLocalRole() == ROLE_Authority)
 	{
-		HitNotify.Source = Source;
-		HitNotify.Spread = Spread;
-		HitNotify.RandomSeed = RandSeed;
+		WeaponSpread.Source = Source;
+		WeaponSpread.Spread = Spread;
+		WeaponSpread.RandomSeed = RandSeed;
 	}
 
 	if (GetNetMode() != NM_DedicatedServer)
@@ -176,7 +176,7 @@ bool AWeaponBaseData::ShouldDealDamage(AActor* Actor) const
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -187,7 +187,7 @@ void AWeaponBaseData::DealDamage(const FHitResult& Hit, const FVector& ShootDire
 	DamageEvent.HitInfo = Hit;
 	DamageEvent.ShotDirection = ShootDirection;
 	DamageEvent.Damage = WeaponBaseData.HitDamage;
-	
+
 	Hit.GetActor()->TakeDamage(DamageEvent.Damage, DamageEvent, CharacterBase->Controller, this);
 }
 
@@ -196,7 +196,7 @@ void AWeaponBaseData::Fire()
 	Super::Fire();
 
 	UE_LOG(LogTemp, Warning, TEXT("WeaponBaseData Fire()"));
-	
+
 	const int32 RandomSeed = FMath::Rand();
 	FRandomStream WeaponRandomStream(RandomSeed);
 	const float CurrentSpread = GetCurrentSpread();
@@ -211,7 +211,16 @@ void AWeaponBaseData::Fire()
 
 	ProcessHit(Hit, StartTrace, ShootDirection, RandomSeed, CurrentSpread);
 	CurrentFiringSpread = FMath::Min(WeaponBaseData.MaxSpreadModifier,
-	                                 CurrentFiringSpread + WeaponBaseData.SpreadModifier);
+	                                 (CurrentFiringSpread + WeaponBaseData.SpreadModifier) / 1.5);
+
+	if (CharacterBase->GetStance() == EALSStance::Crouching)
+	{
+		CurrentFiringSpread /= WeaponBaseData.SpreadModifier;
+	}
+	else if (CharacterBase->GetGait() == EALSGait::Running || CharacterBase->GetGait() == EALSGait::Walking)
+	{
+		CurrentFiringSpread *= WeaponBaseData.SpreadModifier;
+	}
 }
 
 void AWeaponBaseData::OnBurstFinished()
@@ -225,18 +234,18 @@ void AWeaponBaseData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AWeaponBaseData, HitNotify, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AWeaponBaseData, WeaponSpread, COND_SkipOwner);
 }
 
 void AWeaponBaseData::OnRep_HitNotify()
 {
-	SimulateHit(HitNotify.Source, HitNotify.RandomSeed, HitNotify.Spread);
+	SimulateHit(WeaponSpread.Source, WeaponSpread.RandomSeed, WeaponSpread.Spread);
 }
 
 void AWeaponBaseData::SimulateHit(const FVector& Source, int32 RandSeed, float Spread)
 {
 	FRandomStream WeaponRandomStream(RandSeed);
-	const float ConeHalfAngle = FMath::DegreesToRadians(Spread * 0.5f);
+	const float ConeHalfAngle = FMath::DegreesToRadians(Spread * 0.2f);
 
 	const FVector StartTrace = Source;
 	const FVector AimDir = GetAdjustedAim();

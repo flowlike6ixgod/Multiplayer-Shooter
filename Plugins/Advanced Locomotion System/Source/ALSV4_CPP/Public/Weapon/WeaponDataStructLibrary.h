@@ -72,3 +72,22 @@ struct FWeaponData
 		AllowedViewDotHitDir = 0.8f;
 	}
 };
+
+USTRUCT()
+struct FWeaponSpread
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Weapon")
+	float Spread;
+
+	UPROPERTY()
+	FVector Source;
+	
+	UPROPERTY(EditAnywhere, Category = "Weapon")
+	int32 RandomSeed;
+	
+	FWeaponSpread() : Spread(0), Source(0), RandomSeed(0)
+	{
+	}; 
+};
