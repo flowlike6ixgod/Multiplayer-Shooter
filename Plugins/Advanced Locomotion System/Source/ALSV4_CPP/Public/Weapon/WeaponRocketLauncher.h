@@ -3,67 +3,62 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "WeaponProjectile.h"
-#include "Components/SphereComponent.h"
-#include "GameFramework/Actor.h"
-#include "GameFramework/ProjectileMovementComponent.h"
+#include "Weapon/WeaponBase.h"
 #include "WeaponRocketLauncher.generated.h"
 
-UCLASS(Abstract, Blueprintable)
-class ALSV4_CPP_API AWeaponRocketLauncher : public AActor
+
+USTRUCT()
+struct FWeaponProjectileData
 {
 	GENERATED_BODY()
 
-private:
-	/* Projectile movement component */
-	UPROPERTY(VisibleAnywhere, Category = "Projectile")
-	UProjectileMovementComponent* ProjectileMovementComponent;
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile | Data")
+	TSubclassOf<class AWeaponProjectile> WeaponProjectile;
 
-	UPROPERTY(VisibleAnywhere, Category = "Projectile")
-	USphereComponent* ProjectileSphereComponent;
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile | Data")
+	float ProjectileLifeTime;
 
-	UPROPERTY(VisibleAnywhere, Category = "Projectile")
-	UParticleSystemComponent* ProjectileParticleSystemComponent;
-	
-public:	
-	// Sets default values for this actor's properties
-	AWeaponRocketLauncher();
-	
-protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile | Data")
+	TSubclassOf<UDamageType> DamageType;
 
-	/* Fired controller */
-	TWeakObjectPtr<AController> PC;
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile | Data")
+	int32 ProjectileDamage;
 
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_Exploded)
-	bool bIsExploded;
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile | Data")
+	float ProjectileRadius;
 
-	/* OnRep bIsExplode (client) */
-	UFUNCTION()
-	void OnRep_Exploded();
+	FWeaponProjectileData()
+	{
+		WeaponProjectile = nullptr;
+		ProjectileLifeTime = 5.f;
+		DamageType = UDamageType::StaticClass();
+		ProjectileDamage = 50;
+		ProjectileRadius = 20.f;
+	}
+};
 
-	void Explode(const FHitResult& HitResult);
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void PostInitializeComponents() override;
-
-	virtual void PostNetReceiveVelocity(const FVector& Velocity) override;
-
-	virtual void GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const override;
+/**
+ * 
+ */
+UCLASS(Abstract)
+class ALSV4_CPP_API AWeaponRocketLauncher : public AWeaponBase
+{
+	GENERATED_BODY()
 
 public:
-	/** projectile data */
-	struct FWeaponProjectileData ProjectileData;
+	/* Apply projectile data*/
+	void ApplyWeaponProjectileData(struct FWeaponProjectileData& Data);
+
+	/* Return current ammo type */
+	virtual EAmmoType GetAmmoType() const override;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Data")
+	FWeaponProjectileData ProjectileData;
 	
-	/* Initialize projectile velocity */
-	void InitializeVelocity(FVector& ShootDirection);
+	virtual void Fire() override;
 
-	/* Handle hit */
-	UFUNCTION()
-	void OnHit(const FHitResult& HitResult);
-
-	/* Destroy fired projectile */
-	void DestroyProjectile();
+	/* Server spawn projectile */
+	UFUNCTION(Reliable, Server, WithValidation)
+	void ServerFireProjectile(FVector Source, FVector_NetQuantizeNormal ShootDirection);
 };
