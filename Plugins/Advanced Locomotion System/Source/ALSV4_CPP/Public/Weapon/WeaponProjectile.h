@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Weapon/WeaponBase.h"
-#include "WeaponBaseProjectileData.generated.h"
+#include "WeaponProjectile.generated.h"
 
 
 USTRUCT()
@@ -13,7 +13,7 @@ struct FWeaponProjectileData
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile | Data")
-	TSubclassOf<class AWeaponBaseProjectile> WeaponProjectile;
+	TSubclassOf<class AWeaponRocketLauncher> WeaponProjectile;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile | Data")
 	float ProjectileLifeTime;
@@ -42,7 +42,7 @@ struct FWeaponProjectileData
  * 
  */
 UCLASS(Abstract)
-class ALSV4_CPP_API AWeaponBaseProjectileData : public AWeaponBase
+class ALSV4_CPP_API AWeaponProjectile : public AWeaponBase
 {
 	GENERATED_BODY()
 

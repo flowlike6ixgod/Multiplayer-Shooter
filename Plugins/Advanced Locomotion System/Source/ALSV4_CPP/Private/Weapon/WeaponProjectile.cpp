@@ -1,22 +1,22 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Weapon/WeaponBaseProjectileData.h"
+#include "Weapon/WeaponProjectile.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "Weapon/WeaponBaseProjectile.h"
+#include "Weapon/WeaponRocketLauncher.h"
 
-void AWeaponBaseProjectileData::ApplyWeaponProjectileData(FWeaponProjectileData& Data)
+void AWeaponProjectile::ApplyWeaponProjectileData(FWeaponProjectileData& Data)
 {
 	Data = ProjectileData;
 }
 
-EAmmoType AWeaponBaseProjectileData::GetAmmoType() const
+EAmmoType AWeaponProjectile::GetAmmoType() const
 {
 	return EAmmoType::Bullet;
 }
 
-void AWeaponBaseProjectileData::Fire()
+void AWeaponProjectile::Fire()
 {
 	Super::Fire();
 
@@ -65,11 +65,11 @@ void AWeaponBaseProjectileData::Fire()
 	ServerFireProjectile(Source, ShootDirection);
 }
 
-void AWeaponBaseProjectileData::ServerFireProjectile_Implementation(FVector Source,
+void AWeaponProjectile::ServerFireProjectile_Implementation(FVector Source,
                                                                     FVector_NetQuantizeNormal ShootDirection)
 {
 	FTransform SpawnTransform(ShootDirection.Rotation(), Source);
-	AWeaponBaseProjectile* Projectile = Cast<AWeaponBaseProjectile>(
+	AWeaponRocketLauncher* Projectile = Cast<AWeaponRocketLauncher>(
 		UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileData.WeaponProjectile, SpawnTransform));
 
 	if (Projectile)
@@ -82,7 +82,7 @@ void AWeaponBaseProjectileData::ServerFireProjectile_Implementation(FVector Sour
 	}
 }
 
-bool AWeaponBaseProjectileData::ServerFireProjectile_Validate(FVector Source, FVector_NetQuantizeNormal ShootDirection)
+bool AWeaponProjectile::ServerFireProjectile_Validate(FVector Source, FVector_NetQuantizeNormal ShootDirection)
 {
 	return true;
 }
