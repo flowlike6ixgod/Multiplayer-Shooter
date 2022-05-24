@@ -2,7 +2,7 @@
 
 
 #include "Weapon/WeaponBase.h"
-#include "Weapon/WeaponBaseData.h"
+#include "Weapon/Weapon.h"
 #include "AI/ALSAIController.h"
 #include "Character/ALSPlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
