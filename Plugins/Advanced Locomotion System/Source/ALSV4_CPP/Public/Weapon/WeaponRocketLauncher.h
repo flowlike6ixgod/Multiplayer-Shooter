@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "WeaponBaseProjectileData.h"
+#include "WeaponProjectile.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "WeaponBaseProjectile.generated.h"
+#include "WeaponRocketLauncher.generated.h"
 
 UCLASS(Abstract, Blueprintable)
-class ALSV4_CPP_API AWeaponBaseProjectile : public AActor
+class ALSV4_CPP_API AWeaponRocketLauncher : public AActor
 {
 	GENERATED_BODY()
 
@@ -27,7 +27,7 @@ private:
 	
 public:	
 	// Sets default values for this actor's properties
-	AWeaponBaseProjectile();
+	AWeaponRocketLauncher();
 	
 protected:
 

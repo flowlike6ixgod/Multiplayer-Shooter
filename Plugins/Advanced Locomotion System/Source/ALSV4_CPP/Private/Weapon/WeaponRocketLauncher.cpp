@@ -1,14 +1,14 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Weapon/WeaponBaseProjectile.h"
+#include "Weapon/WeaponRocketLauncher.h"
 
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
-AWeaponBaseProjectile::AWeaponBaseProjectile()
+AWeaponRocketLauncher::AWeaponRocketLauncher()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -43,13 +43,13 @@ AWeaponBaseProjectile::AWeaponBaseProjectile()
 	ProjectileParticleSystemComponent->SetupAttachment(ProjectileSphereComponent);
 }
 
-void AWeaponBaseProjectile::PostInitializeComponents()
+void AWeaponRocketLauncher::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	ProjectileMovementComponent->OnProjectileStop.AddDynamic(this, &AWeaponBaseProjectile::OnHit);
+	ProjectileMovementComponent->OnProjectileStop.AddDynamic(this, &AWeaponRocketLauncher::OnHit);
 	ProjectileSphereComponent->MoveIgnoreActors.Add(GetInstigator());
 
-	AWeaponBaseProjectileData* NewOwner = Cast<AWeaponBaseProjectileData>(GetOwner());
+	AWeaponProjectile* NewOwner = Cast<AWeaponProjectile>(GetOwner());
 	if (NewOwner)
 	{
 		NewOwner->ApplyWeaponProjectileData(ProjectileData);
@@ -59,7 +59,7 @@ void AWeaponBaseProjectile::PostInitializeComponents()
 	PC = GetInstigatorController();
 }
 
-void AWeaponBaseProjectile::OnRep_Exploded()
+void AWeaponRocketLauncher::OnRep_Exploded()
 {
 	FVector ProjectileDirection = GetActorForwardVector();
 
@@ -78,7 +78,7 @@ void AWeaponBaseProjectile::OnRep_Exploded()
 	Explode(Hit);
 }
 
-void AWeaponBaseProjectile::Explode(const FHitResult& HitResult)
+void AWeaponRocketLauncher::Explode(const FHitResult& HitResult)
 {
 	if (ProjectileParticleSystemComponent)
 	{
@@ -95,19 +95,19 @@ void AWeaponBaseProjectile::Explode(const FHitResult& HitResult)
 	bIsExploded = true;
 }
 
-void AWeaponBaseProjectile::PostNetReceiveVelocity(const FVector& Velocity)
+void AWeaponRocketLauncher::PostNetReceiveVelocity(const FVector& Velocity)
 {
 	Super::PostNetReceiveVelocity(Velocity);
 }
 
-void AWeaponBaseProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AWeaponRocketLauncher::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AWeaponBaseProjectile, bIsExploded);
+	DOREPLIFETIME(AWeaponRocketLauncher, bIsExploded);
 }
 
-void AWeaponBaseProjectile::InitializeVelocity(FVector& ShootDirection)
+void AWeaponRocketLauncher::InitializeVelocity(FVector& ShootDirection)
 {
 	if (ProjectileMovementComponent)
 	{
@@ -115,7 +115,7 @@ void AWeaponBaseProjectile::InitializeVelocity(FVector& ShootDirection)
 	}
 }
 
-void AWeaponBaseProjectile::OnHit(const FHitResult& HitResult)
+void AWeaponRocketLauncher::OnHit(const FHitResult& HitResult)
 {
 	if (GetLocalRole() == ROLE_Authority && !bIsExploded)
 	{
@@ -124,7 +124,7 @@ void AWeaponBaseProjectile::OnHit(const FHitResult& HitResult)
 	}
 }
 
-void AWeaponBaseProjectile::DestroyProjectile()
+void AWeaponRocketLauncher::DestroyProjectile()
 {
 	UAudioComponent* AudioComponent = FindComponentByClass<UAudioComponent>();
 
@@ -138,7 +138,7 @@ void AWeaponBaseProjectile::DestroyProjectile()
 }
 
 // Called every frame
-void AWeaponBaseProjectile::Tick(float DeltaTime)
+void AWeaponRocketLauncher::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
