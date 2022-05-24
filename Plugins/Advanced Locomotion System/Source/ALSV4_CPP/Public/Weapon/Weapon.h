@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Effects/WeaponEffects.h"
 #include "Weapon/WeaponBase.h"
 #include "Weapon/WeaponDataStructLibrary.h"
 #include "Weapon.generated.h"
@@ -41,12 +42,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
 	FName TrailTargetParam;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
+	TSubclassOf<AWeaponEffects> ImpactEffects;
+		
 	/* replicated hit notify */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_HitNotify)
 	FWeaponSpread WeaponSpread;
 
 	/* Current firing spread */
 	float CurrentFiringSpread;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Accuracy")
+	float SpreadReduction;
 
 
 public:

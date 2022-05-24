@@ -4,15 +4,26 @@
 #include "Weapon/Weapon.h"
 
 #include "Character/ALSBaseCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystemComponent.h"
 
 AWeapon::AWeapon()
 {
 	CurrentFiringSpread = 0.0f;
+	SpreadReduction = 0.0f;
 }
 
 float AWeapon::GetCurrentSpread() const
 {
 	float FinalSpread = WeaponBaseData.WeaponSpread + CurrentFiringSpread;
+	if (CharacterBase->GetStance() == EALSStance::Crouching)
+	{
+		FinalSpread /= WeaponBaseData.SpreadModifier;
+	}
+	else if (CharacterBase->GetGait() == EALSGait::Running || CharacterBase->GetGait() == EALSGait::Walking)
+	{
+		FinalSpread *= 1.5f;
+	}
 
 	return FinalSpread;
 }
@@ -23,7 +34,7 @@ EAmmoType AWeapon::GetAmmoType() const
 }
 
 void AWeapon::ServerHitNotify_Implementation(const FHitResult& Hit, FVector_NetQuantizeNormal ShootDirection,
-                                                     int32 RandSeed, float Spread)
+                                             int32 RandSeed, float Spread)
 {
 	// Convert Radians to degrees
 	const float WeaponAngleDot = FMath::Abs(FMath::Sin(Spread * PI / 180.f));
@@ -92,13 +103,13 @@ void AWeapon::ServerHitNotify_Implementation(const FHitResult& Hit, FVector_NetQ
 }
 
 bool AWeapon::ServerHitNotify_Validate(const FHitResult& Hit, FVector_NetQuantizeNormal ShootDirection,
-                                               int32 RandSeed, float Spread)
+                                       int32 RandSeed, float Spread)
 {
 	return true;
 }
 
 void AWeapon::ServerMissNotify_Implementation(FVector_NetQuantizeNormal ShootDirection, int32 RandSeed,
-                                                      float Spread)
+                                              float Spread)
 {
 	const FVector Source = GetMuzzleLocation();
 	WeaponSpread.Source = Source;
@@ -118,7 +129,7 @@ bool AWeapon::ServerMissNotify_Validate(FVector_NetQuantizeNormal ShootDirection
 }
 
 void AWeapon::ProcessHit(const FHitResult& HitResult, const FVector& Source, const FVector& ShootDirection,
-                                 int32 RandSeed, float Spread)
+                         int32 RandSeed, float Spread)
 {
 	if (CharacterBase && CharacterBase->IsLocallyControlled() && GetNetMode() == NM_Client)
 	{
@@ -143,7 +154,7 @@ void AWeapon::ProcessHit(const FHitResult& HitResult, const FVector& Source, con
 }
 
 void AWeapon::HitConfirmed(const FHitResult& HitResult, const FVector& Source, const FVector& ShootDirection,
-                                   int32 RandSeed, float Spread)
+                           int32 RandSeed, float Spread)
 {
 	if (ShouldDealDamage(HitResult.GetActor()))
 	{
@@ -195,12 +206,10 @@ void AWeapon::Fire()
 {
 	Super::Fire();
 
-	UE_LOG(LogTemp, Warning, TEXT("WeaponBaseData Fire()"));
-
 	const int32 RandomSeed = FMath::Rand();
 	FRandomStream WeaponRandomStream(RandomSeed);
 	const float CurrentSpread = GetCurrentSpread();
-	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
+	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread / SpreadReduction);
 
 	const FVector AimDir = GetAdjustedAim();
 	const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
@@ -208,19 +217,10 @@ void AWeapon::Fire()
 	const FVector EndTrace = StartTrace + ShootDirection * WeaponBaseData.WeaponRange;
 
 	const FHitResult Hit = WeaponHitTrace(StartTrace, EndTrace);
-
 	ProcessHit(Hit, StartTrace, ShootDirection, RandomSeed, CurrentSpread);
-	CurrentFiringSpread = FMath::Min(WeaponBaseData.MaxSpreadModifier,
-	                                 (CurrentFiringSpread + WeaponBaseData.SpreadModifier) / 1.5);
-
-	if (CharacterBase->GetStance() == EALSStance::Crouching)
-	{
-		CurrentFiringSpread /= WeaponBaseData.SpreadModifier;
-	}
-	else if (CharacterBase->GetGait() == EALSGait::Running || CharacterBase->GetGait() == EALSGait::Walking)
-	{
-		CurrentFiringSpread *= WeaponBaseData.SpreadModifier;
-	}
+	
+	CurrentFiringSpread = FMath::Min(WeaponBaseData.MaxSpreadModifier,(CurrentFiringSpread) + WeaponBaseData.SpreadModifier);
+	
 }
 
 void AWeapon::OnBurstFinished()
@@ -245,7 +245,7 @@ void AWeapon::OnRep_HitNotify()
 void AWeapon::SimulateHit(const FVector& Source, int32 RandSeed, float Spread)
 {
 	FRandomStream WeaponRandomStream(RandSeed);
-	const float ConeHalfAngle = FMath::DegreesToRadians(Spread * 0.2f);
+	const float ConeHalfAngle = FMath::DegreesToRadians(Spread / WeaponBaseData.SpreadReduction);
 
 	const FVector StartTrace = Source;
 	const FVector AimDir = GetAdjustedAim();
@@ -267,8 +267,39 @@ void AWeapon::SimulateHit(const FVector& Source, int32 RandSeed, float Spread)
 
 void AWeapon::SpawnHitEffect(const FHitResult& Hit)
 {
+	if (ImpactEffects && Hit.bBlockingHit)
+	{
+		FHitResult UseHit = Hit;
+
+		if (Hit.Component.IsValid())
+		{
+			const FVector StartTrace = Hit.ImpactPoint + Hit.ImpactNormal * 10.f;
+			const FVector EndTrace = Hit.ImpactPoint - Hit.ImpactNormal * 10.f;
+
+			FHitResult HitResult = WeaponHitTrace(StartTrace, EndTrace);
+			UseHit = HitResult;
+		}
+
+		FTransform const SpawnTransform(Hit.ImpactNormal.Rotation(), Hit.ImpactPoint);
+		AWeaponEffects* Effect = GetWorld()->SpawnActorDeferred<AWeaponEffects>(ImpactEffects, SpawnTransform);
+		if (Effect)
+		{
+			Effect->SurfaceHit = UseHit;
+			UGameplayStatics::FinishSpawningActor(Effect, SpawnTransform);
+		}
+	}
 }
 
 void AWeapon::SpawnTrailEffect(const FVector& EndPoint)
 {
+	if (TrailFX)
+	{
+		const FVector Source = GetMuzzleLocation();
+
+		UParticleSystemComponent* TrailParticle = UGameplayStatics::SpawnEmitterAtLocation(this, TrailFX, Source);
+		if (TrailParticle)
+		{
+			TrailParticle->SetVectorParameter(TrailTargetParam, EndPoint);
+		}
+	}
 }
