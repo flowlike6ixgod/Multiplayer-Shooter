@@ -58,6 +58,11 @@ int32 AWeaponBase::GetCurrentWeaponAmmo() const
 	return CurrentWeaponAmmo;
 }
 
+FName AWeaponBase::GetWeaponName() const
+{
+	return FName(*WeaponData.WeaponName);
+}
+
 AALSBaseCharacter* AWeaponBase::GetOwnerCharacter() const
 {
 	return CharacterBase;
@@ -482,7 +487,7 @@ FVector AWeaponBase::GetCameraDamageStartLocation(const FVector& AimDirection)
 		FRotator Rotation;
 		PC->GetPlayerViewPoint(StartTrace, Rotation);
 		StartTrace = StartTrace + AimDirection * (GetInstigator()->GetActorLocation() - StartTrace | AimDirection);
-		DrawDebugLine(GetWorld(), StartTrace, StartTrace + 5000.f, FColor::Blue, false, 2.f);
+		//DrawDebugLine(GetWorld(), StartTrace, StartTrace + 5000.f, FColor::Blue, false, 2.f);
 		UE_LOG(LogTemp, Warning, TEXT("GetCameraDamageStartLocation() called"));
 	}
 	return StartTrace;
@@ -497,7 +502,7 @@ FHitResult AWeaponBase::WeaponHitTrace(const FVector& From, const FVector& To) c
 	GetWorld()->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, CollisionTraceParams);
 	DrawDebugLine(GetWorld(), From, To, FColor::Green, false, 5.0f, 0, 3.0f);
 	UE_LOG(LogTemp, Warning, TEXT("Hit Result"));
-
+	DrawDebugPoint(GetWorld(), To, 3.f, FColor::Blue, false, 5.f);
 	return Hit;
 }
 

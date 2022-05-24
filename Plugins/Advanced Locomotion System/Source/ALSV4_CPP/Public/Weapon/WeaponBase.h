@@ -39,6 +39,9 @@ public:
 	int32 GetCurrentWeaponAmmo() const;
 
 	UFUNCTION(BlueprintCallable)
+	FName GetWeaponName() const;
+
+	UFUNCTION(BlueprintCallable)
 	EWeaponState GetCurrentWeaponState() { return CurrentWeaponState; };
 
 	UFUNCTION(BlueprintCallable)
