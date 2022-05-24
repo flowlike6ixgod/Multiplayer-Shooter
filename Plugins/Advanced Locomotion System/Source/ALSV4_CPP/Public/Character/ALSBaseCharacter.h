@@ -11,7 +11,7 @@
 #include "Engine/DataTable.h"
 #include "GameFramework/Character.h"
 #include "Weapon/WeaponBase.h"
-#include "Weapon/WeaponBaseData.h"
+#include "Weapon/Weapon.h"
 
 #include "ALSBaseCharacter.generated.h"
 
