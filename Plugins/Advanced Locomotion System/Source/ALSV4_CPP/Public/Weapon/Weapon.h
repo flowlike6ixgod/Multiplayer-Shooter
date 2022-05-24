@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Weapon/WeaponBase.h"
 #include "Weapon/WeaponDataStructLibrary.h"
-#include "WeaponBaseData.generated.h"
+#include "Weapon.generated.h"
 
 //TODO:
 //1. Create hit effect
@@ -16,13 +16,13 @@
  * 
  */
 UCLASS(Abstract)
-class ALSV4_CPP_API AWeaponBaseData : public AWeaponBase
+class ALSV4_CPP_API AWeapon : public AWeaponBase
 {
 	GENERATED_BODY()
 
 public:
 
-	AWeaponBaseData();
+	AWeapon();
 	
 	/* Return current weapon spread */
 	float GetCurrentSpread() const;

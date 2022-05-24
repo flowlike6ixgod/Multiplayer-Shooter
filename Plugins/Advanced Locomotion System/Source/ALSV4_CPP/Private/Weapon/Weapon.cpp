@@ -1,28 +1,28 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Weapon/WeaponBaseData.h"
+#include "Weapon/Weapon.h"
 
 #include "Character/ALSBaseCharacter.h"
 
-AWeaponBaseData::AWeaponBaseData()
+AWeapon::AWeapon()
 {
 	CurrentFiringSpread = 0.0f;
 }
 
-float AWeaponBaseData::GetCurrentSpread() const
+float AWeapon::GetCurrentSpread() const
 {
 	float FinalSpread = WeaponBaseData.WeaponSpread + CurrentFiringSpread;
 
 	return FinalSpread;
 }
 
-EAmmoType AWeaponBaseData::GetAmmoType() const
+EAmmoType AWeapon::GetAmmoType() const
 {
 	return EAmmoType::Bullet;
 }
 
-void AWeaponBaseData::ServerHitNotify_Implementation(const FHitResult& Hit, FVector_NetQuantizeNormal ShootDirection,
+void AWeapon::ServerHitNotify_Implementation(const FHitResult& Hit, FVector_NetQuantizeNormal ShootDirection,
                                                      int32 RandSeed, float Spread)
 {
 	// Convert Radians to degrees
@@ -91,13 +91,13 @@ void AWeaponBaseData::ServerHitNotify_Implementation(const FHitResult& Hit, FVec
 	}
 }
 
-bool AWeaponBaseData::ServerHitNotify_Validate(const FHitResult& Hit, FVector_NetQuantizeNormal ShootDirection,
+bool AWeapon::ServerHitNotify_Validate(const FHitResult& Hit, FVector_NetQuantizeNormal ShootDirection,
                                                int32 RandSeed, float Spread)
 {
 	return true;
 }
 
-void AWeaponBaseData::ServerMissNotify_Implementation(FVector_NetQuantizeNormal ShootDirection, int32 RandSeed,
+void AWeapon::ServerMissNotify_Implementation(FVector_NetQuantizeNormal ShootDirection, int32 RandSeed,
                                                       float Spread)
 {
 	const FVector Source = GetMuzzleLocation();
@@ -112,12 +112,12 @@ void AWeaponBaseData::ServerMissNotify_Implementation(FVector_NetQuantizeNormal 
 	}
 }
 
-bool AWeaponBaseData::ServerMissNotify_Validate(FVector_NetQuantizeNormal ShootDirection, int32 RandSeed, float Spread)
+bool AWeapon::ServerMissNotify_Validate(FVector_NetQuantizeNormal ShootDirection, int32 RandSeed, float Spread)
 {
 	return true;
 }
 
-void AWeaponBaseData::ProcessHit(const FHitResult& HitResult, const FVector& Source, const FVector& ShootDirection,
+void AWeapon::ProcessHit(const FHitResult& HitResult, const FVector& Source, const FVector& ShootDirection,
                                  int32 RandSeed, float Spread)
 {
 	if (CharacterBase && CharacterBase->IsLocallyControlled() && GetNetMode() == NM_Client)
@@ -142,7 +142,7 @@ void AWeaponBaseData::ProcessHit(const FHitResult& HitResult, const FVector& Sou
 	HitConfirmed(HitResult, Source, ShootDirection, RandSeed, Spread);
 }
 
-void AWeaponBaseData::HitConfirmed(const FHitResult& HitResult, const FVector& Source, const FVector& ShootDirection,
+void AWeapon::HitConfirmed(const FHitResult& HitResult, const FVector& Source, const FVector& ShootDirection,
                                    int32 RandSeed, float Spread)
 {
 	if (ShouldDealDamage(HitResult.GetActor()))
@@ -167,7 +167,7 @@ void AWeaponBaseData::HitConfirmed(const FHitResult& HitResult, const FVector& S
 	}
 }
 
-bool AWeaponBaseData::ShouldDealDamage(AActor* Actor) const
+bool AWeapon::ShouldDealDamage(AActor* Actor) const
 {
 	if (Actor)
 	{
@@ -180,7 +180,7 @@ bool AWeaponBaseData::ShouldDealDamage(AActor* Actor) const
 	return false;
 }
 
-void AWeaponBaseData::DealDamage(const FHitResult& Hit, const FVector& ShootDirection)
+void AWeapon::DealDamage(const FHitResult& Hit, const FVector& ShootDirection)
 {
 	FPointDamageEvent DamageEvent;
 	DamageEvent.DamageTypeClass = WeaponBaseData.DamageType;
@@ -191,7 +191,7 @@ void AWeaponBaseData::DealDamage(const FHitResult& Hit, const FVector& ShootDire
 	Hit.GetActor()->TakeDamage(DamageEvent.Damage, DamageEvent, CharacterBase->Controller, this);
 }
 
-void AWeaponBaseData::Fire()
+void AWeapon::Fire()
 {
 	Super::Fire();
 
@@ -223,26 +223,26 @@ void AWeaponBaseData::Fire()
 	}
 }
 
-void AWeaponBaseData::OnBurstFinished()
+void AWeapon::OnBurstFinished()
 {
 	Super::OnBurstFinished();
 
 	CurrentFiringSpread = 0.0f;
 }
 
-void AWeaponBaseData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AWeaponBaseData, WeaponSpread, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AWeapon, WeaponSpread, COND_SkipOwner);
 }
 
-void AWeaponBaseData::OnRep_HitNotify()
+void AWeapon::OnRep_HitNotify()
 {
 	SimulateHit(WeaponSpread.Source, WeaponSpread.RandomSeed, WeaponSpread.Spread);
 }
 
-void AWeaponBaseData::SimulateHit(const FVector& Source, int32 RandSeed, float Spread)
+void AWeapon::SimulateHit(const FVector& Source, int32 RandSeed, float Spread)
 {
 	FRandomStream WeaponRandomStream(RandSeed);
 	const float ConeHalfAngle = FMath::DegreesToRadians(Spread * 0.2f);
@@ -265,10 +265,10 @@ void AWeaponBaseData::SimulateHit(const FVector& Source, int32 RandSeed, float S
 	}
 }
 
-void AWeaponBaseData::SpawnHitEffect(const FHitResult& Hit)
+void AWeapon::SpawnHitEffect(const FHitResult& Hit)
 {
 }
 
-void AWeaponBaseData::SpawnTrailEffect(const FVector& EndPoint)
+void AWeapon::SpawnTrailEffect(const FVector& EndPoint)
 {
 }
