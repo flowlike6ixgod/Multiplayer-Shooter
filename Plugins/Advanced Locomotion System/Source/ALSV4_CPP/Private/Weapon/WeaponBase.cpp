@@ -9,29 +9,33 @@
 #include "CollisionQueryParams.h"
 #include "Character/ALSBaseCharacter.h"
 #include "Character/ALSPlayerController.h"
+#include "Components/AudioComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
 AWeaponBase::AWeaponBase()
 {
 	WeaponSkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponSkeletalMesh"));
 	RootComponent = WeaponSkeletalMeshComp;
-	
+
 	bWantsFire = false;
 	bIsEquipped = false;
 	bIsRefiring = false;
 	bIsEquipped = false;
 	bIsEquipping = false;
+	bLoopedSound = false;
+	bLoopedMuzzleFX = false;
 
 	BurstCounter = 0;
 	LastFireTime = 0.f;
 	EquipStartedTime = 0.f;
 	EquipDuration = 0.f;
-	
+
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
-    SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
-    bReplicates = true;
+	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
+	bReplicates = true;
 	bNetUseOwnerRelevancy = true;
 }
 
@@ -83,15 +87,26 @@ bool AWeaponBase::CanFire()
 {
 	bool bCanFire = CharacterBase && CharacterBase->CanFire();
 	bool bStateFire = ((CurrentWeaponState == EWeaponState::None) || (CurrentWeaponState == EWeaponState::Fire));
-	
-	return (( bCanFire == true ) && ( bStateFire == true ));
+
+	return ((bCanFire == true) && (bStateFire == true));
+}
+
+UAudioComponent* AWeaponBase::PlayWeaponSound(USoundCue* Sound)
+{
+	UAudioComponent* AudioComponent = nullptr;
+	if (Sound && CharacterBase)
+	{
+		AudioComponent = UGameplayStatics::SpawnSoundAttached(Sound, CharacterBase->GetRootComponent());
+	}
+
+	return AudioComponent;
 }
 
 // Called when the game starts or when spawned
 void AWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	CurrentWeaponState = EWeaponState::None;
 }
 
@@ -131,12 +146,9 @@ void AWeaponBase::OnBurstStart()
 void AWeaponBase::OnBurstFinished()
 {
 	BurstCounter = 0;
-	// if (GetNetMode() != NM_DedicatedServer)
-	// {
-	// 	
-	// }
-	StopSimulatingFire(); // FIX 
 
+	StopSimulatingFire();
+	
 	GetWorldTimerManager().ClearTimer(Fire_TimerHandle);
 	bIsRefiring = false;
 
@@ -158,14 +170,12 @@ void AWeaponBase::StartFire()
 	if (GetLocalRole() < ROLE_Authority)
 	{
 		ServerStartFire();
-		UE_LOG(LogTemp, Warning, TEXT("STARTFIRE FUNC()"));
 	}
 
 	if (!bWantsFire)
 	{
 		bWantsFire = true;
 		DetermineWeaponState();
-		UE_LOG(LogTemp, Warning, TEXT("ELSE STARTFIRE FUNC()"));
 	}
 }
 
@@ -174,21 +184,18 @@ void AWeaponBase::StopFire()
 	if ((GetLocalRole() < ROLE_Authority) && CharacterBase && CharacterBase->IsLocallyControlled())
 	{
 		ServerStopFire();
-		UE_LOG(LogTemp, Warning, TEXT("STOPFIRE FUNC()"));
 	}
 
 	if (bWantsFire)
 	{
 		bWantsFire = false;
 		DetermineWeaponState();
-		UE_LOG(LogTemp, Warning, TEXT("ELSE STOPFIRE FUNC()"));
 	}
 }
 
 void AWeaponBase::ServerStartFire_Implementation()
 {
 	StartFire();
-	UE_LOG(LogTemp, Warning, TEXT("SERVER STARTFIRE FUNC()"));
 }
 
 bool AWeaponBase::ServerStartFire_Validate()
@@ -199,7 +206,6 @@ bool AWeaponBase::ServerStartFire_Validate()
 void AWeaponBase::ServerStopFire_Implementation()
 {
 	StopFire();
-	UE_LOG(LogTemp, Warning, TEXT("SERVER STOPFIRE FUNC()"));
 }
 
 bool AWeaponBase::ServerStopFire_Validate()
@@ -210,7 +216,6 @@ bool AWeaponBase::ServerStopFire_Validate()
 void AWeaponBase::ServerFireHandle_Implementation()
 {
 	HandleFire();
-	UE_LOG(LogTemp, Warning, TEXT("SERER HANDLEFIRE FUNC()"));
 }
 
 bool AWeaponBase::ServerFireHandle_Validate()
@@ -223,12 +228,10 @@ void AWeaponBase::OnRep_CharacterBase()
 	if (CharacterBase)
 	{
 		OnAddWeapon(CharacterBase);
-		UE_LOG(LogTemp, Warning, TEXT("ON_REP CHARACTER FUNC()"));
 	}
 	else
 	{
 		OnRemoveWeapon();
-		UE_LOG(LogTemp, Warning, TEXT(" ELSE ON_REP CHARACTER FUNC()"));
 	}
 }
 
@@ -248,21 +251,67 @@ void AWeaponBase::SimulateFire()
 {
 	if (GetLocalRole() == ROLE_Authority && CurrentWeaponState != EWeaponState::Fire)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SIMULATE == ROLE_AUTH FUNC()"));
+		UE_LOG(LogTemp, Warning, TEXT("Simulate fire return in first state"));
 		return;
 	}
-	AALSPlayerController* PC = Cast<AALSPlayerController>(CharacterBase->Controller);
+
+	if (MuzzleFX)
+	{
+		USkeletalMeshComponent* WeapMesh = GetWeaponMesh();
+
+		if (!bLoopedMuzzleFX || MuzzleParticleSystemComponent == nullptr)
+		{
+			MuzzleParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, WeapMesh, MuzzleSocket);
+		}
+	}
+	if (bLoopedSound)
+	{
+		if (!FireAudioComponent)
+		{
+			FireAudioComponent = PlayWeaponSound(FireLoopCue);
+		}
+	}
+	else
+	{
+		PlayWeaponSound(FireCue);
+	}
+
+	AALSPlayerController* PC = (CharacterBase != nullptr)
+		                           ? Cast<AALSPlayerController>(CharacterBase->Controller)
+		                           : nullptr;
 	if (PC && PC->IsLocalController())
 	{
 		if (CameraShake)
 		{
 			PC->ClientStartCameraShake(CameraShake, 1.5f);
 		}
+		if (FireFeedbackEffect)
+		{
+			FForceFeedbackParameters FeedbackParameters;
+			FeedbackParameters.Tag = "Weapon";
+			PC->ClientPlayForceFeedback(FireFeedbackEffect, FeedbackParameters);
+		}
 	}
 }
 
 void AWeaponBase::StopSimulatingFire()
 {
+	if (bLoopedMuzzleFX)
+	{
+		if (MuzzleParticleSystemComponent)
+		{
+			MuzzleParticleSystemComponent->DeactivateSystem();
+			MuzzleParticleSystemComponent = nullptr;
+		}
+	}
+
+	if (FireAudioComponent)
+	{
+		FireAudioComponent->FadeOut(0.2f, 0.f);
+		FireAudioComponent = nullptr;
+
+		PlayWeaponSound(FireEndCue);
+	}
 }
 
 void AWeaponBase::Fire()
@@ -279,7 +328,7 @@ void AWeaponBase::HandleRefiring()
 	{
 		TimerIntervalAdjustment -= SlackTimeThisFrame;
 	}
-	
+
 	HandleFire();
 }
 
@@ -291,15 +340,12 @@ void AWeaponBase::HandleFire()
 		if (GetNetMode() != NM_DedicatedServer)
 		{
 			SimulateFire();
-			UE_LOG(LogTemp, Warning, TEXT("WeaponBase SimulateFire()"));
 		}
 		if (CharacterBase && CharacterBase->IsLocallyControlled())
 		{
-			Fire(); // FIX 
+			Fire();
 			BurstCounter++;
-			UE_LOG(LogTemp, Warning, TEXT("WeaponBase Fire()"));
 		}
-		UE_LOG(LogTemp, Error, TEXT("HandleFire CanFire == true"));
 	}
 	else if (CharacterBase && CharacterBase->IsLocallyControlled())
 	{
@@ -311,16 +357,14 @@ void AWeaponBase::HandleFire()
 	else
 	{
 		OnBurstFinished();
-		UE_LOG(LogTemp, Error, TEXT("Can Fire == false"));
 	}
-	
+
 	if (CharacterBase && CharacterBase->IsLocallyControlled())
 	{
 		// Notify the server that we are firing
 		if (GetLocalRole() < ROLE_Authority)
 		{
 			ServerFireHandle();
-			UE_LOG(LogTemp, Error, TEXT("HandleFire GetLocalRole() < ROLE_Authority"));
 		}
 		// Setup refire time
 		bIsRefiring = (CurrentWeaponState == EWeaponState::Fire && WeaponData.DelayBetweenShots > 0.f);
@@ -333,7 +377,6 @@ void AWeaponBase::HandleFire()
 		}
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("HandleFire !Locally controlled"));
 	LastFireTime = GetWorld()->GetTimeSeconds();
 }
 
@@ -369,7 +412,7 @@ void AWeaponBase::DetermineWeaponState()
 	{
 		State = EWeaponState::Equipping;
 	}
-	
+
 	SetWeaponState(State);
 	UE_LOG(LogTemp, Display, TEXT("WeaponState: %d"), CurrentWeaponState);
 }
@@ -381,11 +424,11 @@ void AWeaponBase::OnAddWeapon(AALSBaseCharacter* NewOwner)
 
 void AWeaponBase::OnRemoveWeapon()
 {
-	if(IsAttachedToCharacter())
+	if (IsAttachedToCharacter())
 	{
 		OnUnEquip();
 	}
-	
+
 	if (GetLocalRole() == ROLE_Authority)
 	{
 		SetWeaponOwner(nullptr);
@@ -399,7 +442,7 @@ void AWeaponBase::AttachToCharacter()
 		// Remove character mesh
 		DetachFromCharacter();
 		FName WeaponAttachPoint = CharacterBase->GetWeaponAttachPoint();
-		
+
 		if (CharacterBase->IsLocallyControlled() == true)
 		{
 			USkeletalMeshComponent* SkMesh = CharacterBase->GetMesh();
@@ -439,11 +482,6 @@ FVector AWeaponBase::GetAdjustedAim() const
 		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 		Aim = CameraRotation.Vector();
-		
-		// if (AALSPlayerCameraManager* CastedMgr = Cast<AALSPlayerCameraManager>(
-		// 	UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)))
-		// {
-		// }
 	}
 
 	return Aim;
@@ -487,7 +525,6 @@ FVector AWeaponBase::GetCameraDamageStartLocation(const FVector& AimDirection)
 		FRotator Rotation;
 		PC->GetPlayerViewPoint(StartTrace, Rotation);
 		StartTrace = StartTrace + AimDirection * (GetInstigator()->GetActorLocation() - StartTrace | AimDirection);
-		//DrawDebugLine(GetWorld(), StartTrace, StartTrace + 5000.f, FColor::Blue, false, 2.f);
 		UE_LOG(LogTemp, Warning, TEXT("GetCameraDamageStartLocation() called"));
 	}
 	return StartTrace;
@@ -502,7 +539,7 @@ FHitResult AWeaponBase::WeaponHitTrace(const FVector& From, const FVector& To) c
 	GetWorld()->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, CollisionTraceParams);
 	DrawDebugLine(GetWorld(), From, To, FColor::Green, false, 5.0f, 0, 3.0f);
 	UE_LOG(LogTemp, Warning, TEXT("Hit Result"));
-	DrawDebugPoint(GetWorld(), To, 3.f, FColor::Blue, false, 5.f);
+
 	return Hit;
 }
 

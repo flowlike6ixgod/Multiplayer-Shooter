@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "Library/ALSCharacterEnumLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Sound/SoundCue.h"
 #include "WeaponBase.generated.h"
 
 UCLASS(Abstract, Blueprintable)
@@ -62,7 +63,7 @@ public:
 
 	/* StartReload() and StopReload() */
 
-protected:
+	protected:
 	////////////////* Base info *////////////////
 	///
 	/* Owner*/
@@ -126,8 +127,8 @@ public:
 	UFUNCTION()
 	void OnRep_BurstCounter();
 
-	/* Remove */
 	virtual void SimulateFire();
+	
 	virtual void StopSimulatingFire();
 
 public:
@@ -152,9 +153,6 @@ public:
 
 	/* determine current weapon state */
 	void DetermineWeaponState();
-
-	/* Shake camera when firing */
-	TSubclassOf<UCameraShakeBase> CameraShake;
 	
 public:
 
@@ -215,6 +213,66 @@ protected:
 	float EquipDuration;
 
 	bool bIsEquipping;
+
+protected:
+	/// Effects and Sound
+	//
+	/* Muzzle FX */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
+	UParticleSystem* MuzzleFX;
+
+	/* Muzzle FX Component */
+	UPROPERTY(Transient)
+	UParticleSystemComponent* MuzzleParticleSystemComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
+	FName MuzzleSocket;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
+	UForceFeedbackEffect* FireFeedbackEffect;
+
+	/// Sound
+	//
+	/* fire audio component (bLoopedSound) */
+	UPROPERTY(Transient)
+	UAudioComponent* FireAudioComponent;
+	
+	/* firing sound (single shot)*/
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Sounds")
+	USoundCue* FireCue;
+
+	/* firing sound (Lopped shot)*/
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Sounds")
+	USoundCue* FireLoopCue;
+
+	/* Firing end sound */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Sounds")
+	USoundCue* FireEndCue;
+
+	/* Reload sound */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Sounds")
+	USoundCue* ReloadCue;
+
+	/* Equip Sound */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Sounds")
+	USoundCue* EquipSound;
+	
+	/* Shake camera when firing */
+	TSubclassOf<UCameraShakeBase> CameraShake;
+
+	/* Is Muzzled FX looped */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
+	uint32 bLoopedMuzzleFX : 1;
+
+	/* Is fire sound looped */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Sounds")
+	uint32 bLoopedSound : 1;
+	
+public:
+
+	/* Play weapon sounds */
+	UAudioComponent* PlayWeaponSound(USoundCue* Sound);
+	
 public:
 
 	/* Return current ammo type */
