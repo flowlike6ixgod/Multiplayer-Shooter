@@ -7,6 +7,10 @@ struct FWeaponData
 {
 	GENERATED_BODY()
 
+	/* Weapon name*/
+	UPROPERTY(EditDefaultsOnly, Category = Base)
+	FString WeaponName;
+	
 	/* Ammo */
 	UPROPERTY(EditDefaultsOnly, Category = Ammo)
 	int32 MaxClipAmmo;
@@ -14,31 +18,12 @@ struct FWeaponData
 	UPROPERTY(EditDefaultsOnly, Category = Ammo)
 	int32 MaxWeaponAmmo;
 
-	/* Weapon name*/
-	UPROPERTY(EditDefaultsOnly, Category = Base)
-	FString WeaponName;
-
 	UPROPERTY(EditDefaultsOnly, Category = Base)
 	float DelayBetweenShots;
 
 	/* Base damage */
 	UPROPERTY(EditDefaultsOnly, Category = Stats)
 	int32 WeaponBaseDamage;
-
-	/* Weapon spread in degrees*/
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
-	float WeaponSpread;
-
-	/* Spread modifier */
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
-	float SpreadModifier;
-
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
-	float SpreadReduction;
-
-	/* Max spread modifier */
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
-	float MaxSpreadModifier;
 
 	/* Weapon range */
 	UPROPERTY(EditDefaultsOnly, Category = Stats)
@@ -65,10 +50,6 @@ struct FWeaponData
 		MaxWeaponAmmo = 255;
 		DelayBetweenShots = 0.5f;
 		WeaponBaseDamage = 30;
-		WeaponSpread = 3.0f;
-		SpreadModifier = 1.0f;
-		SpreadReduction = 0.0f;
-		MaxSpreadModifier = 10.0f;
 		WeaponRange = 10000.0f;
 		HitDamage = 30.0f;
 		DamageType = UDamageType::StaticClass();
@@ -78,17 +59,47 @@ struct FWeaponData
 };
 
 USTRUCT()
+struct FSpreadData
+{
+	GENERATED_BODY()
+
+	/* Weapon spread in degrees*/
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	float WeaponSpread;
+
+	/* Spread modifier */
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	float SpreadModifier;
+
+	/* Max spread modifier */
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	float MaxSpreadModifier;
+
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	float SpreadReduction;
+
+	FSpreadData()
+	{
+		WeaponSpread = 3.0f;
+		SpreadModifier = 1.0f;
+		MaxSpreadModifier = 10.0f;
+		SpreadReduction = 15.0f;
+	}
+	
+};
+
+USTRUCT()
 struct FWeaponSpread
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = Weapon)
+	UPROPERTY()
 	float Spread;
 
 	UPROPERTY()
 	FVector Source;
 	
-	UPROPERTY(EditAnywhere, Category = Weapon)
+	UPROPERTY()
 	int32 RandomSeed;
 	
 	FWeaponSpread() : Spread(0), Source(0), RandomSeed(0)

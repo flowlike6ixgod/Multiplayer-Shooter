@@ -10,15 +10,14 @@
 AWeapon::AWeapon()
 {
 	CurrentFiringSpread = 0.0f;
-	SpreadReduction = 0.0f;
 }
 
 float AWeapon::GetCurrentSpread() const
 {
-	float FinalSpread = WeaponBaseData.WeaponSpread + CurrentFiringSpread;
+	float FinalSpread = SpreadData.WeaponSpread + CurrentFiringSpread;
 	if (CharacterBase->GetStance() == EALSStance::Crouching)
 	{
-		FinalSpread /= WeaponBaseData.SpreadModifier;
+		FinalSpread /= SpreadData.SpreadModifier;
 	}
 	else if (CharacterBase->GetGait() == EALSGait::Running || CharacterBase->GetGait() == EALSGait::Walking)
 	{
@@ -56,35 +55,35 @@ void AWeapon::ServerHitNotify_Implementation(const FHitResult& Hit, FVector_NetQ
 					{
 						HitConfirmed(Hit, Source, ShootDirection, RandSeed, Spread);
 					}
-					else if (Hit.GetActor()->IsRootComponentStatic() || Hit.GetActor()->IsRootComponentStationary())
+				}
+				else if (Hit.GetActor()->IsRootComponentStatic() || Hit.GetActor()->IsRootComponentStationary())
+				{
+					HitConfirmed(Hit, Source, ShootDirection, RandSeed, Spread);
+				}
+				else
+				{
+					const FBox HitBox = Hit.GetActor()->GetComponentsBoundingBox();
+
+					FVector BoxExtent = 0.5 * (HitBox.Max - HitBox.Min);
+
+					BoxExtent *= WeaponBaseData.ClientSideHitLeeway;
+					BoxExtent.X = FMath::Max(20.0f, BoxExtent.X);
+					BoxExtent.Y = FMath::Max(20.0f, BoxExtent.Y);
+					BoxExtent.Z = FMath::Max(20.0f, BoxExtent.Z);
+
+					// Get the box center
+					const FVector BoxCenter = (HitBox.Min + HitBox.Max) * 0.5;
+					if (FMath::Abs(Hit.Location.Z - BoxCenter.Z) < BoxExtent.Z &&
+						FMath::Abs(Hit.Location.X - BoxCenter.X) < BoxExtent.X &&
+						FMath::Abs(Hit.Location.Y - BoxCenter.Y) < BoxExtent.Y)
 					{
 						HitConfirmed(Hit, Source, ShootDirection, RandSeed, Spread);
 					}
 					else
 					{
-						const FBox HitBox = Hit.GetActor()->GetComponentsBoundingBox();
-
-						FVector BoxExtent = 0.5 * (HitBox.Max - HitBox.Min);
-
-						BoxExtent *= WeaponBaseData.ClientSideHitLeeway;
-						BoxExtent.X = FMath::Max(20.0f, BoxExtent.X);
-						BoxExtent.Y = FMath::Max(20.0f, BoxExtent.Y);
-						BoxExtent.Z = FMath::Max(20.0f, BoxExtent.Z);
-
-						// Get the box center
-						const FVector BoxCenter = (HitBox.Min + HitBox.Max) * 0.5;
-						if (FMath::Abs(Hit.Location.Z - BoxCenter.Z) < BoxExtent.Z &&
-							FMath::Abs(Hit.Location.X - BoxCenter.X) < BoxExtent.X &&
-							FMath::Abs(Hit.Location.Y - BoxCenter.Y) < BoxExtent.Y)
-						{
-							HitConfirmed(Hit, Source, ShootDirection, RandSeed, Spread);
-						}
-						else
-						{
-							UE_LOG(LogTemp, Log,
-							       TEXT("%s Rejected client side hit of %s (outside bounding box tolerance)"),
-							       *GetNameSafe(this), *GetNameSafe(Hit.GetActor()));
-						}
+						UE_LOG(LogTemp, Log,
+							   TEXT("%s Rejected client side hit of %s (outside bounding box tolerance)"),
+							   *GetNameSafe(this), *GetNameSafe(Hit.GetActor()));
 					}
 				}
 			}
@@ -209,7 +208,7 @@ void AWeapon::Fire()
 	const int32 RandomSeed = FMath::Rand();
 	FRandomStream WeaponRandomStream(RandomSeed);
 	const float CurrentSpread = GetCurrentSpread();
-	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread / SpreadReduction);
+	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread / SpreadData.SpreadReduction);
 
 	const FVector AimDir = GetAdjustedAim();
 	const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
@@ -219,7 +218,7 @@ void AWeapon::Fire()
 	const FHitResult Hit = WeaponHitTrace(StartTrace, EndTrace);
 	ProcessHit(Hit, StartTrace, ShootDirection, RandomSeed, CurrentSpread);
 	
-	CurrentFiringSpread = FMath::Min(WeaponBaseData.MaxSpreadModifier,(CurrentFiringSpread) + WeaponBaseData.SpreadModifier);
+	CurrentFiringSpread = FMath::Min(SpreadData.MaxSpreadModifier,(CurrentFiringSpread) + SpreadData.SpreadModifier);
 	
 }
 
@@ -245,7 +244,7 @@ void AWeapon::OnRep_HitNotify()
 void AWeapon::SimulateHit(const FVector& Source, int32 RandSeed, float Spread)
 {
 	FRandomStream WeaponRandomStream(RandSeed);
-	const float ConeHalfAngle = FMath::DegreesToRadians(Spread / WeaponBaseData.SpreadReduction);
+	const float ConeHalfAngle = FMath::DegreesToRadians(Spread / SpreadData.SpreadReduction);
 
 	const FVector StartTrace = Source;
 	const FVector AimDir = GetAdjustedAim();

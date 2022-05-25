@@ -8,10 +8,6 @@
 #include "Weapon/WeaponDataStructLibrary.h"
 #include "Weapon.generated.h"
 
-//TODO:
-//1. Create hit effect
-//
-
 
 /**
  * 
@@ -35,14 +31,17 @@ protected:
 	/* Weapon data */
 	FWeaponData WeaponBaseData;
 
+	/* Spread data */
+	FSpreadData SpreadData;
+
 	/* Gun fire smoke */
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
 	UParticleSystem* TrailFX;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
 	FName TrailTargetParam;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Effects")
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
 	TSubclassOf<AWeaponEffects> ImpactEffects;
 		
 	/* replicated hit notify */
@@ -51,9 +50,6 @@ protected:
 
 	/* Current firing spread */
 	float CurrentFiringSpread;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon | Accuracy")
-	float SpreadReduction;
 
 
 public:
@@ -71,7 +67,7 @@ public:
 	/* continue processing the instant hit, as if it has been confirmed by the server */
 	void HitConfirmed(const FHitResult& HitResult, const FVector& Source, const FVector& ShootDirection, int32 RandSeed, float Spread);
 
-	/* Check if weapon should deal damage to ohter actors */
+	/* Check if weapon should deal damage to other actors */
 	bool ShouldDealDamage(AActor* Actor) const;
 
 	/* Handle deal damage */
